@@ -2,3 +2,5 @@
 /node_modules
 /functions/util/config.js
 config.js
+firebase-debug.log
+/functions/firebase-debug.log

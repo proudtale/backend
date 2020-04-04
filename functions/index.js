@@ -16,7 +16,7 @@ const {
   commentOnScream,
   likeScream,
   unlikeScream,
-  deleteScream
+  deleteScream,
 } = require("./handlers/screams");
 const {
   signup,
@@ -25,8 +25,29 @@ const {
   addUserDetails,
   getAuthenticatedUser,
   getUserDetails,
-  markNotificationsRead
+  markNotificationsRead,
 } = require("./handlers/users");
+const {
+  getAllBooks,
+  postOneBook,
+  editBook,
+  getBook,
+  commentOnBook,
+  favBook,
+  unfavBook,
+  deleteBook,
+} = require("./handlers/books");
+const {
+  getAllChapters,
+  getAllChaptersOfABook,
+  postOneChapter,
+  editChapter,
+  getChapter,
+  commentOnChapter,
+  likeChapter,
+  unlikeChapter,
+  deleteChapter,
+} = require("./handlers/chapters");
 
 // Scream routes
 app.get("/screams", getAllScreams);
@@ -47,16 +68,37 @@ app.get("/user", FBAuth, getAuthenticatedUser);
 app.get("/user/:handle", getUserDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
 
+//book routes
+app.get("/books", getAllBooks);
+app.post("/book", FBAuth, postOneBook);
+app.post("/book/:bookId/edit", FBAuth, editBook);
+app.get("/book/:bookId", getBook);
+app.delete("/book/:bookId", FBAuth, deleteBook);
+app.get("/book/:bookId/fav", FBAuth, favBook);
+app.get("/book/:bookId/unfav", FBAuth, unfavBook);
+app.post("/book/:bookId/comment", FBAuth, commentOnBook);
+
+//chapter routes
+app.get("/chapters", getAllChapters);
+app.get("/books/:bookId/chapters", getAllChaptersOfABook);
+app.post("/book/:bookId/chapter", FBAuth, postOneChapter);
+app.delete("/book/:bookId/chapter/:chapterId", FBAuth, deleteChapter);
+app.post("/chapter/:chapterId/edit", FBAuth, editChapter);
+app.get("/chapter/:chapterId", getChapter);
+app.get("/chapter/:chapterId/like", FBAuth, likeChapter);
+app.get("/chapter/:chapterId/unfav", FBAuth, unlikeChapter);
+app.post("/chapter/:chapterId/comment", FBAuth, commentOnChapter);
+
 exports.api = functions.region("us-central1").https.onRequest(app);
 
 exports.createNotificationOnLike = functions
   .region("us-central1")
   .firestore.document("likes/{id}")
-  .onCreate(snapshot => {
+  .onCreate((snapshot) => {
     return db
       .doc(`/screams/${snapshot.data().screamId}`)
       .get()
-      .then(doc => {
+      .then((doc) => {
         if (
           doc.exists &&
           doc.data().userHandle !== snapshot.data().userHandle
@@ -67,20 +109,20 @@ exports.createNotificationOnLike = functions
             sender: snapshot.data().userHandle,
             type: "like",
             read: false,
-            screamId: doc.id
+            screamId: doc.id,
           });
         }
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
   });
 exports.deleteNotificationOnUnLike = functions
   .region("us-central1")
   .firestore.document("likes/{id}")
-  .onDelete(snapshot => {
+  .onDelete((snapshot) => {
     return db
       .doc(`/notifications/${snapshot.id}`)
       .delete()
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         return;
       });
@@ -88,11 +130,11 @@ exports.deleteNotificationOnUnLike = functions
 exports.createNotificationOnComment = functions
   .region("us-central1")
   .firestore.document("comments/{id}")
-  .onCreate(snapshot => {
+  .onCreate((snapshot) => {
     return db
       .doc(`/screams/${snapshot.data().screamId}`)
       .get()
-      .then(doc => {
+      .then((doc) => {
         if (
           doc.exists &&
           doc.data().userHandle !== snapshot.data().userHandle
@@ -103,11 +145,11 @@ exports.createNotificationOnComment = functions
             sender: snapshot.data().userHandle,
             type: "comment",
             read: false,
-            screamId: doc.id
+            screamId: doc.id,
           });
         }
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         return;
       });
@@ -116,7 +158,7 @@ exports.createNotificationOnComment = functions
 exports.onUserImageChange = functions
   .region("us-central1")
   .firestore.document("/users/{userId}")
-  .onUpdate(change => {
+  .onUpdate((change) => {
     console.log(change.before.data());
     console.log(change.after.data());
     if (change.before.data().imageUrl !== change.after.data().imageUrl) {
@@ -126,8 +168,8 @@ exports.onUserImageChange = functions
         .collection("screams")
         .where("userHandle", "==", change.before.data().handle)
         .get()
-        .then(data => {
-          data.forEach(doc => {
+        .then((data) => {
+          data.forEach((doc) => {
             const scream = db.doc(`/screams/${doc.id}`);
             batch.update(scream, { userImage: change.after.data().imageUrl });
           });
@@ -146,17 +188,14 @@ exports.onScreamDelete = functions
       .collection("comments")
       .where("screamId", "==", screamId)
       .get()
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/comments/${doc.id}`));
         });
-        return db
-          .collection("likes")
-          .where("screamId", "==", screamId)
-          .get();
+        return db.collection("likes").where("screamId", "==", screamId).get();
       })
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/likes/${doc.id}`));
         });
         return db
@@ -164,11 +203,77 @@ exports.onScreamDelete = functions
           .where("screamId", "==", screamId)
           .get();
       })
-      .then(data => {
-        data.forEach(doc => {
+      .then((data) => {
+        data.forEach((doc) => {
           batch.delete(db.doc(`/notifications/${doc.id}`));
         });
         return batch.commit();
       })
-      .catch(err => console.error(err));
+      .catch((err) => console.error(err));
+  });
+
+//TODO:add delete notifications to chain of deletes
+exports.onBookDelete = functions
+  .region("us-central1")
+  .firestore.document("/books/{bookId}")
+  .onDelete((snapshot, context) => {
+    const bookId = context.params.bookId;
+    const batch = db.batch();
+    return db
+      .collection("chapters")
+      .where("bookId", "==", bookId)
+      .get()
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/chapters/${doc.id}`));
+        });
+        return db
+          .collection("bookFavourites")
+          .where("bookId", "==", bookId)
+          .get();
+      })
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/bookFavourites/${doc.id}`));
+        });
+        return db
+          .collection("bookComments")
+          .where("bookId", "==", bookId)
+          .get();
+      })
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/bookComments/${doc.id}`));
+        });
+        return batch.commit();
+      })
+      .catch((err) => console.error(err));
+  });
+
+exports.onChapterDelete = functions
+  .region("us-central1")
+  .firestore.document("/chapters/{chapterId}")
+  .onDelete((snapshot, context) => {
+    const chapterId = context.params.chapterId;
+    const batch = db.batch();
+    return db
+      .collection("chapterLikes")
+      .where("chapterId", "==", chapterId)
+      .get()
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/chapterLikes/${doc.id}`));
+        });
+        return db
+          .collection("chapterComments")
+          .where("chapterId", "==", chapterId)
+          .get();
+      })
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/chapterComments/${doc.id}`));
+        });
+        return batch.commit();
+      })
+      .catch((err) => console.error(err));
   });
