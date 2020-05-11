@@ -1,5 +1,5 @@
 const { db } = require("../util/admin");
-
+//get all screams
 exports.getAllScreams = (req, res) => {
   db.collection("screams")
     .orderBy("createdAt", "desc")
@@ -107,7 +107,7 @@ exports.getScream = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Comment on a comment
+// Comment on a scream
 exports.commentOnScream = (req, res) => {
   if (req.body.body.trim() === "")
     return res.status(400).json({ comment: "Must not be empty" });
@@ -187,7 +187,7 @@ exports.likeScream = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-
+// Unlike a scream 
 exports.unlikeScream = (req, res) => {
   const likeDocument = db
     .collection("likes")

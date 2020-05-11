@@ -111,7 +111,7 @@ exports.addUserDetails = (req, res) => {
       return res.status(500).json({ error: err.code });
     });
 };
-// Get any user's details
+// Get any user's scream details
 exports.getUserDetails = (req, res) => {
   let userData = {};
   db.doc(`/users/${req.params.handle}`)
@@ -149,6 +149,46 @@ exports.getUserDetails = (req, res) => {
       return res.status(500).json({ error: err.code });
     });
 };
+
+// Get any user's book details
+exports.getUserBookDetails = (req, res) => {
+  let userData = {};
+  db.doc(`/users/${req.params.handle}`)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        userData.user = doc.data();
+        return db
+          .collection("books")
+          .where("userHandle", "==", req.params.handle)
+          .orderBy("createdAt", "desc")
+          .get();
+      } else {
+        return res.status(404).json({ errror: "User not found" });
+      }
+    })
+    .then(data => {
+      userData.books = [];
+      data.forEach(doc => {
+        userData.books.push({
+          title: doc.data().title,
+          desc: doc.data().desc,
+          createdAt: doc.data().createdAt,
+          userHandle: doc.data().userHandle,
+          userImage: doc.data().userImage,
+          likeCount: doc.data().favCount,
+          commentCount: doc.data().commentCount,
+          bookId: doc.id
+        });
+      });
+      return res.json(userData);
+    })
+    .catch(err => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
+    });
+};
+
 // Get own user details
 exports.getAuthenticatedUser = (req, res) => {
   let userData = {};

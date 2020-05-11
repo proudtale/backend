@@ -25,11 +25,13 @@ const {
   addUserDetails,
   getAuthenticatedUser,
   getUserDetails,
+  getUserBookDetails,
   markNotificationsRead,
 } = require("./handlers/users");
 const {
   getAllBooks,
   postOneBook,
+  uploadBookImage,
   editBook,
   getBook,
   commentOnBook,
@@ -66,11 +68,13 @@ app.post("/user/image", FBAuth, uploadImage);
 app.post("/user", FBAuth, addUserDetails);
 app.get("/user", FBAuth, getAuthenticatedUser);
 app.get("/user/:handle", getUserDetails);
+app.get("/user/:handle/books", getUserBookDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
 
 //book routes
 app.get("/books", getAllBooks);
 app.post("/book", FBAuth, postOneBook);
+app.post("/book/bookImage", FBAuth, uploadBookImage);
 app.post("/book/:bookId/edit", FBAuth, editBook);
 app.get("/book/:bookId", getBook);
 app.delete("/book/:bookId", FBAuth, deleteBook);
@@ -249,6 +253,30 @@ exports.onBookDelete = functions
       })
       .catch((err) => console.error(err));
   });
+
+// Change book image
+exports.onBookImageChange = functions
+.region("us-central1")
+.firestore.document("/books/{bookId}")
+.onUpdate((change) => {
+  console.log(change.before.data());
+  console.log(change.after.data());
+  if (change.before.data().bookImage !== change.after.data().bookImage) {
+    console.log("Book image has changed");
+    const batch = db.batch();
+    return db
+      .collection("books")
+      .where("userHandle", "==", change.before.data().handle)
+      .get()
+      .then((data) => {
+        data.forEach((doc) => {
+          const book = db.doc(`/books/${doc.id}`);
+          batch.update(book, { bookImage: change.after.data().bookImage });
+        });
+        return batch.commit();
+      });
+  } else return true;
+});
 
 exports.onChapterDelete = functions
   .region("us-central1")
