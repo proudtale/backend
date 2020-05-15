@@ -176,6 +176,7 @@ exports.getUserBookDetails = (req, res) => {
           createdAt: doc.data().createdAt,
           userHandle: doc.data().userHandle,
           userImage: doc.data().userImage,
+          bookImageUrl: doc.data().bookImageUrl,
           likeCount: doc.data().favCount,
           commentCount: doc.data().commentCount,
           bookId: doc.id

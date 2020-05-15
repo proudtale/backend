@@ -1,5 +1,6 @@
 const { db } = require("../util/admin");
 const { validateFormat } = require("../util/validators");
+const config = require("../util/config");
 //get all books
 exports.getAllBooks = (req, res) => {
   db.collection("books")
@@ -17,7 +18,7 @@ exports.getAllBooks = (req, res) => {
           commentCount: doc.data().commentCount,
           favCount: doc.data().favCount,
           chapterCount: doc.data().chapterCount,
-          bookImage: doc.data().bookImage,
+          bookImageUrl: doc.data().bookImageUrl,
         });
       });
       return res.json(books);
@@ -30,14 +31,14 @@ exports.getAllBooks = (req, res) => {
 //post a book
 exports.postOneBook = (req, res) => {
   const { errors, valid } = validateFormat(req.body, ["title", "desc"]);
+  const noBookImg = "no-book-img.png";
   if (!valid) return res.status(400).json(errors);
-
-  // const noBookImg = "no-book-img.png";
   const newBook = {
     title: req.body.title,
     desc: req.body.desc,
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
+    bookImageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noBookImg}?alt=media`,
     createdAt: new Date().toISOString(),
     favCount: 0,
     commentCount: 0,
@@ -307,8 +308,8 @@ exports.uploadBookImage = (req, res) => {
         }
       })
       .then(() => {
-        const bookImage = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
-        return db.doc(`/users/${req.user.handle}`).update({ bookImage });
+        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
+        return db.doc(`/books/${req.user.handle}`).update({ imageUrl });
       })
       .then(() => {
         return res.json({ message: "image uploaded successfully" });
