@@ -31,14 +31,19 @@ exports.getAllBooks = (req, res) => {
 //post a book
 exports.postOneBook = (req, res) => {
   const { errors, valid } = validateFormat(req.body, ["title", "desc"]);
-  const noBookImg = "no-book-img.png";
+  const bookImg = "no-book-img.png";
+  const reqImage = req.body["img"];
+  if (reqImage != "") {
+    bookImg = reqImage;
+  }
   if (!valid) return res.status(400).json(errors);
+
   const newBook = {
     title: req.body.title,
     desc: req.body.desc,
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
-    bookImageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noBookImg}?alt=media`,
+    bookImageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${bookImg}?alt=media`,
     createdAt: new Date().toISOString(),
     favCount: 0,
     commentCount: 0,
@@ -303,9 +308,9 @@ exports.uploadBookImage = (req, res) => {
         resumable: false,
         metadata: {
           metadata: {
-            contentType: imageToBeUploaded.mimetype
-          }
-        }
+            contentType: imageToBeUploaded.mimetype,
+          },
+        },
       })
       .then(() => {
         const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
@@ -314,7 +319,7 @@ exports.uploadBookImage = (req, res) => {
       .then(() => {
         return res.json({ message: "image uploaded successfully" });
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         return res.status(500).json({ error: "something went wrong" });
       });
