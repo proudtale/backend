@@ -31,7 +31,8 @@ const {
 const {
   getAllBooks,
   postOneBook,
-  uploadBookImage,
+  editBookImage,
+  initialPostBookImage,
   editBook,
   getBook,
   commentOnBook,
@@ -74,7 +75,8 @@ app.post("/notifications", FBAuth, markNotificationsRead);
 //book routes
 app.get("/books", getAllBooks);
 app.post("/book", FBAuth, postOneBook);
-app.post("/book/bookImage", FBAuth, uploadBookImage);
+app.post("/book/bookImage/:bookId", FBAuth, editBookImage);
+app.post("/book/initialBookImage", FBAuth, initialPostBookImage);
 app.post("/book/:bookId/edit", FBAuth, editBook);
 app.get("/book/:bookId", getBook);
 app.delete("/book/:bookId", FBAuth, deleteBook);
