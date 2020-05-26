@@ -311,9 +311,9 @@ exports.editBookImage = (req, res) => {
         destination: `${folder}/${imageFileName}`,
         metadata: {
           metadata: {
-            contentType: imageToBeUploaded.mimetype
-          }
-        }
+            contentType: imageToBeUploaded.mimetype,
+          },
+        },
       })
       .then(() => {
         const bookImageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/coverimage%2F${imageFileName}?alt=media`;
@@ -322,7 +322,7 @@ exports.editBookImage = (req, res) => {
       .then(() => {
         return res.json({ message: "image uploaded successfully" });
       })
-      .catch(err => {
+      .catch((err) => {
         console.error(err);
         return res.status(500).json({ error: "something went wrong" });
       });
