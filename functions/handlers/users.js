@@ -48,8 +48,8 @@ exports.signup = (req, res) => {
         handle: newUser.handle,
         email: newUser.email,
         createdAt: new Date().toISOString(),
-        imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
-        userId,
+        imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/userimage%2F${noImg}?alt=media`,
+        userId
       };
       return db.doc(`/users/${newUser.handle}`).set(userCredentials);
     })
@@ -242,20 +242,17 @@ exports.uploadImage = (req, res) => {
   const path = require("path");
   const os = require("os");
   const fs = require("fs");
-
   const busboy = new BusBoy({ headers: req.headers });
-
+  const folder = 'userimage'
   let imageToBeUploaded = {};
   let imageFileName;
 
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
-    console.log(fieldname, file, filename, encoding, mimetype);
+    // console.log(fieldname, file, filename, encoding, mimetype);
     if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
       return res.status(400).json({ error: "Wrong file type submitted" });
     }
-    // my.image.png => ['my', 'image', 'png']
     const imageExtension = filename.split(".")[filename.split(".").length - 1];
-    // 32756238461724837.png
     imageFileName = `${Math.round(
       Math.random() * 1000000000000
     ).toString()}.${imageExtension}`;
@@ -269,6 +266,7 @@ exports.uploadImage = (req, res) => {
       .bucket()
       .upload(imageToBeUploaded.filepath, {
         resumable: false,
+        destination: `${folder}/${imageFileName}`,
         metadata: {
           metadata: {
             contentType: imageToBeUploaded.mimetype,
@@ -276,7 +274,7 @@ exports.uploadImage = (req, res) => {
         },
       })
       .then(() => {
-        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
+        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/userimage%2F${imageFileName}?alt=media`;
         return db.doc(`/users/${req.user.handle}`).update({ imageUrl });
       })
       .then(() => {
