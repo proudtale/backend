@@ -1,6 +1,7 @@
-const { db } = require("../util/admin");
+const { admin, db } = require("../util/admin");
 const { validateFormat } = require("../util/validators");
-
+const config = require("../util/config");
+//get all books
 exports.getAllBooks = (req, res) => {
   db.collection("books")
     .orderBy("createdAt", "desc")
@@ -17,7 +18,7 @@ exports.getAllBooks = (req, res) => {
           commentCount: doc.data().commentCount,
           favCount: doc.data().favCount,
           chapterCount: doc.data().chapterCount,
-          userImage: doc.data().userImage,
+          bookImageUrl: doc.data().bookImageUrl,
         });
       });
       return res.json(books);
@@ -27,16 +28,23 @@ exports.getAllBooks = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-
+//post a book
 exports.postOneBook = (req, res) => {
   const { errors, valid } = validateFormat(req.body, ["title", "desc"]);
+  // const bookImageUrl="";
+  // const noBookImg = "no-book-img.png";
   if (!valid) return res.status(400).json(errors);
-
+  // if (req.body.bookImageUrl===null)
+  // bookImageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/coverimage%2F${noBookImg}?alt=media`;
+  // else 
+  // bookImageUrl = req.body.bookImageUrl;
   const newBook = {
     title: req.body.title,
     desc: req.body.desc,
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
+    bookImageUrl: req.body.bookImageUrl,
+    // bookImageUrl: bookImageUrl,
     createdAt: new Date().toISOString(),
     favCount: 0,
     commentCount: 0,
@@ -51,7 +59,8 @@ exports.postOneBook = (req, res) => {
       res.json(resBook);
     })
     .catch((err) => {
-      res.status(500).json({ error: "Something went wrong :(" });
+      res.status(500).json({ error: "Something went wrong" });
+      res.json(err);
       console.error(err);
     });
 };
@@ -65,7 +74,7 @@ exports.editBook = (req, res) => {
     desc: req.body.desc,
     title: req.body.title,
     userHandle: req.user.handle,
-    imageUrl: req.user.imageUrl,
+    bookImage: req.body.bookImage,
     editedAt: new Date().toISOString(),
     edited: true,
   };
@@ -80,7 +89,7 @@ exports.editBook = (req, res) => {
     });
 };
 
-// Fetch one scream
+// Fetch one book
 exports.getBook = (req, res) => {
   let bookData = {};
   db.doc(`/books/${req.params.bookId}`)
@@ -109,7 +118,7 @@ exports.getBook = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Comment on a comment
+// Comment on a book
 exports.commentOnBook = (req, res) => {
   if (req.body.body.trim() === "")
     return res.status(400).json({ comment: "Must not be empty" });
@@ -127,7 +136,7 @@ exports.commentOnBook = (req, res) => {
     createdAt: new Date().toISOString(),
     bookId: req.params.bookId,
     userHandle: req.user.handle,
-    userImage: req.user.imageUrl,
+    bookImage: req.book.bookImage,
   };
   console.log(newComment);
 
@@ -150,7 +159,7 @@ exports.commentOnBook = (req, res) => {
       res.status(500).json({ error: "Something went wrong" });
     });
 };
-// Like a scream
+// Like a book
 exports.favBook = (req, res) => {
   const favDocument = db
     .collection("bookFavourites")
@@ -197,7 +206,7 @@ exports.favBook = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-
+// Unlik a book
 exports.unfavBook = (req, res) => {
   const favDocument = db
     .collection("bookFavourites")
@@ -241,7 +250,7 @@ exports.unfavBook = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Delete a scream
+// Delete a book
 exports.deleteBook = (req, res) => {
   const document = db.doc(`/books/${req.params.bookId}`);
   document
@@ -263,4 +272,116 @@ exports.deleteBook = (req, res) => {
       console.error(err);
       return res.status(500).json({ error: err.code });
     });
+};
+
+// Edit a book image for book
+exports.editBookImage = (req, res) => {
+  const BusBoy = require("busboy");
+  const path = require("path");
+  const os = require("os");
+  const fs = require("fs");
+
+  const busboy = new BusBoy({ headers: req.headers });
+  const folder = 'coverimage'
+  let imageToBeUploaded = {};
+  let imageFileName;
+
+  busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+
+    if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
+      return res.status(400).json({ error: "Wrong file type submitted" });
+    }
+
+    const imageExtension = filename.split(".")[filename.split(".").length - 1];
+
+    imageFileName = `${Math.round(
+      Math.random() * 1000000000000
+    ).toString()}.${imageExtension}`;
+    const filepath = path.join(os.tmpdir(), imageFileName);
+    imageToBeUploaded = { filepath, mimetype };
+    file.pipe(fs.createWriteStream(filepath));
+  });
+  
+  busboy.on("finish", () => {
+    admin
+      .storage()
+      .bucket()
+      .upload(imageToBeUploaded.filepath, {
+        resumable: false,
+        destination: `${folder}/${imageFileName}`,
+        metadata: {
+          metadata: {
+            contentType: imageToBeUploaded.mimetype,
+          },
+        },
+      })
+      .then(() => {
+        const bookImageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/coverimage%2F${imageFileName}?alt=media`;
+        return db.doc(`/books/${req.params.bookId}`).update({ bookImageUrl });
+      })
+      .then(() => {
+        return res.json({ message: "image uploaded successfully" });
+      })
+      .catch((err) => {
+        console.error(err);
+        return res.status(500).json({ error: "something went wrong" });
+      });
+  });
+  busboy.end(req.rawBody);
+};
+
+// Post inital book cover image
+exports.initialPostBookImage = (req, res) => {
+  const BusBoy = require("busboy");
+  const path = require("path");
+  const os = require("os");
+  const fs = require("fs");
+
+  const busboy = new BusBoy({ headers: req.headers });
+  const folder = 'initialcoverimage'
+  let imageToBeUploaded = {};
+  let imageFileName;
+
+  busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+
+    if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
+      return res.status(400).json({ error: "Wrong file type submitted" });
+    }
+
+    // const imageExtension = filename.split(".")[filename.split(".").length - 1];
+    // imageFileName = `${Math.round(
+    //   Math.random() * 1000000000000
+    // ).toString()}.${imageExtension}`;
+    imageFileName = filename;
+    const filepath = path.join(os.tmpdir(), imageFileName);
+    imageToBeUploaded = { filepath, mimetype };
+    file.pipe(fs.createWriteStream(filepath));
+  });
+  
+  busboy.on("finish", () => {
+    admin
+      .storage()
+      .bucket()
+      .upload(imageToBeUploaded.filepath, {
+        resumable: false,
+        destination: `${folder}/${imageFileName}`,
+        metadata: {
+          metadata: {
+            contentType: imageToBeUploaded.mimetype
+          }
+        }
+      })
+      // .then(() => {
+      //   const bookImageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/coverimage%2F${imageFileName}?alt=media`;
+      //   return db.doc(`/books/${req.params.bookId}`).update({ bookImageUrl });
+      // })
+      .then(() => {
+        return res.json({ message: "image uploaded successfully" });
+      })
+      .catch(err => {
+        console.error(err);
+        return res.status(500).json({ error: "something went wrong" });
+      });
+  });
+  busboy.end(req.rawBody);
 };
