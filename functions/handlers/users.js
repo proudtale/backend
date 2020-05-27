@@ -49,7 +49,7 @@ exports.signup = (req, res) => {
         email: newUser.email,
         createdAt: new Date().toISOString(),
         imageUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/userimage%2F${noImg}?alt=media`,
-        userId
+        userId,
       };
       return db.doc(`/users/${newUser.handle}`).set(userCredentials);
     })
@@ -171,15 +171,16 @@ exports.getUserBookDetails = (req, res) => {
       userData.books = [];
       data.forEach((doc) => {
         userData.books.push({
+          bookId: doc.id,
           title: doc.data().title,
           desc: doc.data().desc,
-          createdAt: doc.data().createdAt,
           userHandle: doc.data().userHandle,
           userImage: doc.data().userImage,
-          bookImageUrl: doc.data().bookImageUrl,
-          likeCount: doc.data().favCount,
+          createdAt: doc.data().createdAt,
           commentCount: doc.data().commentCount,
-          bookId: doc.id,
+          favCount: doc.data().favCount,
+          chapterCount: doc.data().chapterCount,
+          bookImageUrl: doc.data().bookImageUrl,
         });
       });
       return res.json(userData);
@@ -243,7 +244,7 @@ exports.uploadImage = (req, res) => {
   const os = require("os");
   const fs = require("fs");
   const busboy = new BusBoy({ headers: req.headers });
-  const folder = 'userimage'
+  const folder = "userimage";
   let imageToBeUploaded = {};
   let imageFileName;
 
