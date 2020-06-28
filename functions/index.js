@@ -39,6 +39,7 @@ const {
   favBook,
   unfavBook,
   deleteBook,
+  completeBook
 } = require("./handlers/books");
 const {
   getAllChapters,
@@ -83,6 +84,7 @@ app.delete("/book/:bookId", FBAuth, deleteBook);
 app.get("/book/:bookId/fav", FBAuth, favBook);
 app.get("/book/:bookId/unfav", FBAuth, unfavBook);
 app.post("/book/:bookId/comment", FBAuth, commentOnBook);
+app.post("/book/:bookId/completeBook", FBAuth, completeBook);
 
 //chapter routes
 app.get("/chapters", getAllChapters);

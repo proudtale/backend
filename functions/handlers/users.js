@@ -181,6 +181,7 @@ exports.getUserBookDetails = (req, res) => {
           favCount: doc.data().favCount,
           chapterCount: doc.data().chapterCount,
           bookImageUrl: doc.data().bookImageUrl,
+          bookCompleted: doc.data().bookCompleted,
         });
       });
       return res.json(userData);

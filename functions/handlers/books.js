@@ -19,6 +19,7 @@ exports.getAllBooks = (req, res) => {
           favCount: doc.data().favCount,
           chapterCount: doc.data().chapterCount,
           bookImageUrl: doc.data().bookImageUrl,
+          userImage: doc.data().userImage
         });
       });
       return res.json(books);
@@ -44,8 +45,8 @@ exports.postOneBook = (req, res) => {
     userHandle: req.user.handle,
     userImage: req.user.imageUrl,
     bookImageUrl: req.body.bookImageUrl,
-    // bookImageUrl: bookImageUrl,
-    createdAt: new Date().toISOString(),
+    bookCompleted: false,
+    createdAt: new Date().toUTCString(),
     favCount: 0,
     commentCount: 0,
     chapterCount: 0,
@@ -273,7 +274,31 @@ exports.deleteBook = (req, res) => {
       return res.status(500).json({ error: err.code });
     });
 };
-
+// Update a bookCompleted
+exports.completeBook = (req, res) => {
+  const document = db.doc(`/books/${req.params.bookId}`);
+  document
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Book not found" });
+      }
+      if (doc.data().userHandle !== req.user.handle) {
+        return res.status(403).json({ error: "Unauthorized" });
+      } else {
+        return document.update({
+          bookCompleted: true
+        });
+      }
+    })
+    .then(() => {
+      return res.json({ message: "Book completed successfully" });
+    })
+    .catch((err) => {
+      console.error(err);
+      return res.status(500).json({ error: err.code });
+    });
+};
 // Edit a book image for book
 exports.editBookImage = (req, res) => {
   const BusBoy = require("busboy");
