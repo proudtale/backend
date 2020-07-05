@@ -29,7 +29,7 @@ exports.getAllBooks = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-//post a book
+//post a book // This api is still in progress.
 exports.postOneBook = (req, res) => {
   const { errors, valid } = validateFormat(req.body, ["title", "desc"]);
   // const bookImageUrl="";
@@ -39,7 +39,9 @@ exports.postOneBook = (req, res) => {
   // bookImageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/coverimage%2F${noBookImg}?alt=media`;
   // else 
   // bookImageUrl = req.body.bookImageUrl;
+  let bookIdDate = new Date().toISOString().slice(0, 19).replace(/-/g, "");
   const newBook = {
+    bookId: `${(req.user.handle).replace(/\s+/g, "")}_${(req.body.title).replace(/\s+/g, "")}_${bookIdDate}`,
     title: req.body.title,
     desc: req.body.desc,
     userHandle: req.user.handle,
@@ -52,12 +54,10 @@ exports.postOneBook = (req, res) => {
     chapterCount: 0,
   };
 
-  db.collection("books")
-    .add(newBook)
-    .then((doc) => {
-      const resBook = newBook;
-      resBook.bookId = doc.id;
-      res.json(resBook);
+  db.collection("books").doc(newBook.bookId)
+    .set(newBook)
+    .then(() => {
+      res.json(newBook);
     })
     .catch((err) => {
       res.status(500).json({ error: "Something went wrong" });
@@ -66,7 +66,7 @@ exports.postOneBook = (req, res) => {
     });
 };
 
-//edit a book
+// This api is still in progress.
 exports.editBook = (req, res) => {
   const { errors, valid } = validateFormat(req.body, ["title", "desc"]);
   if (!valid) return res.status(400).json(errors);
@@ -95,22 +95,39 @@ exports.getBook = (req, res) => {
   let bookData = {};
   db.doc(`/books/${req.params.bookId}`)
     .get()
+    // .then((doc) => {
+    //   if (!doc.exists) {
+    //     return res.status(404).json({ error: "Book not found" });
+    //   }
+    //   bookData = doc.data();
+    //   bookData.bookId = doc.id;
+    //   return db
+    //     .collection("bookComments")
+    //     .orderBy("createdAt", "desc")
+    //     .where("bookId", "==", req.params.bookId)
+    //     .get();
+    // })
+    // .then((data) => {
+    //   bookData.comments = [];
+    //   data.forEach((doc) => {
+    //     bookData.comments.push(doc.data());
+    //   });
+    //   return res.json(bookData);
+    // })
     .then((doc) => {
-      if (!doc.exists) {
+      if(doc.exists) {
+        return db
+          .collection("books")
+          .where("bookId", "==", req.params.bookId)
+          .get();
+      } else {
         return res.status(404).json({ error: "Book not found" });
-      }
-      bookData = doc.data();
-      bookData.bookId = doc.id;
-      return db
-        .collection("bookComments")
-        .orderBy("createdAt", "desc")
-        .where("bookId", "==", req.params.bookId)
-        .get();
+      } 
     })
     .then((data) => {
-      bookData.comments = [];
+      bookData.books = [];
       data.forEach((doc) => {
-        bookData.comments.push(doc.data());
+        bookData.books.push(doc.data());
       });
       return res.json(bookData);
     })
@@ -119,7 +136,7 @@ exports.getBook = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Comment on a book
+// This api is still in progress.
 exports.commentOnBook = (req, res) => {
   if (req.body.body.trim() === "")
     return res.status(400).json({ comment: "Must not be empty" });
@@ -160,7 +177,7 @@ exports.commentOnBook = (req, res) => {
       res.status(500).json({ error: "Something went wrong" });
     });
 };
-// Like a book
+// This api is still in progress.
 exports.favBook = (req, res) => {
   const favDocument = db
     .collection("bookFavourites")
@@ -207,7 +224,7 @@ exports.favBook = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Unlik a book
+// This api is still in progress.
 exports.unfavBook = (req, res) => {
   const favDocument = db
     .collection("bookFavourites")
@@ -372,11 +389,6 @@ exports.initialPostBookImage = (req, res) => {
     if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
       return res.status(400).json({ error: "Wrong file type submitted" });
     }
-
-    // const imageExtension = filename.split(".")[filename.split(".").length - 1];
-    // imageFileName = `${Math.round(
-    //   Math.random() * 1000000000000
-    // ).toString()}.${imageExtension}`;
     imageFileName = filename;
     const filepath = path.join(os.tmpdir(), imageFileName);
     imageToBeUploaded = { filepath, mimetype };

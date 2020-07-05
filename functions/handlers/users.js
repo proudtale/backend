@@ -153,14 +153,15 @@ exports.getUserDetails = (req, res) => {
 // Get any user's book details
 exports.getUserBookDetails = (req, res) => {
   let userData = {};
-  db.doc(`/users/${req.params.handle}`)
+  db.doc(`/users/${req.user.handle}`)
     .get()
     .then((doc) => {
       if (doc.exists) {
-        userData.user = doc.data();
+        // userData.user = doc.data();
+        userData.credentials = doc.data();
         return db
           .collection("books")
-          .where("userHandle", "==", req.params.handle)
+          .where("userHandle", "==", req.user.handle)
           .orderBy("createdAt", "desc")
           .get();
       } else {

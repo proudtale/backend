@@ -69,8 +69,8 @@ app.post("/login", login);
 app.post("/user/image", FBAuth, uploadImage);
 app.post("/user", FBAuth, addUserDetails);
 app.get("/user", FBAuth, getAuthenticatedUser);
-app.get("/user/:handle", getUserDetails);
-app.get("/user/:handle/books", getUserBookDetails);
+app.get("/user/:handle", FBAuth, getUserDetails);
+app.get("/user/:handle/books", FBAuth, getUserBookDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
 
 //book routes
@@ -92,7 +92,7 @@ app.get("/books/:bookId/chapters", getAllChaptersOfABook);
 app.post("/book/:bookId/chapter", FBAuth, postOneChapter);
 app.delete("/book/:bookId/chapter/:chapterId", FBAuth, deleteChapter);
 app.post("/chapter/:chapterId/edit", FBAuth, editChapter);
-app.get("/chapter/:chapterId", getChapter);
+app.get("/book/:bookId/chapter/:chapterId", getChapter);
 app.get("/chapter/:chapterId/like", FBAuth, likeChapter);
 app.get("/chapter/:chapterId/unfav", FBAuth, unlikeChapter);
 app.post("/chapter/:chapterId/comment", FBAuth, commentOnChapter);

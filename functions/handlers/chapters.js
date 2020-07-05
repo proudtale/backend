@@ -1,6 +1,7 @@
 const { db } = require("../util/admin");
 const { validateFormat } = require("../util/validators");
 
+// This api is still in progress.
 exports.getAllChapters = (req, res) => {
   db.collection("chapters")
     .orderBy("createdAt")
@@ -25,7 +26,7 @@ exports.getAllChapters = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-
+// This api is still in progress.
 exports.getAllChaptersOfABook = (req, res) => {
   db.collection("chapters")
     .where("bookId", "==", req.params.bookId)
@@ -51,6 +52,7 @@ exports.getAllChaptersOfABook = (req, res) => {
     });
 };
 
+//Post one chapter
 exports.postOneChapter = (req, res) => {
   const { valid, errors } = validateFormat(req.body, ["body", "title"]);
   if (!valid) return res.status(400).json(errors);
@@ -59,6 +61,7 @@ exports.postOneChapter = (req, res) => {
     bookId: req.params.bookId,
     title: req.body.title,
     body: req.body.body,
+    createdAt: new Date().toUTCString(),
     likeCount: 0,
     commentCount: 0,
   };
@@ -70,7 +73,7 @@ exports.postOneChapter = (req, res) => {
       if (data.exists && data.data().userHandle === req.user.handle) {
         data.ref.update({ chapterCount: data.data().chapterCount + 1 });
         return db
-          .collection("chapters")
+          .collection("books").doc(newChapter.bookId).collection("chapters")
           .add(newChapter)
           .then((doc) => {
             const resChapter = newChapter;
@@ -91,7 +94,36 @@ exports.postOneChapter = (req, res) => {
     });
 };
 
-//edit a book
+// Fetch one chapter
+exports.getChapter = (req, res) => {
+  let chapterData = {};
+  db.doc(`/books/${req.params.bookId}/chapters/${req.params.chapterId}`)
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Chapters not found" });
+      }
+      chapterData = doc.data();
+      chapterData.chapterId = doc.id;
+      return db
+        .collection("books").doc(req.params.bookId).collection("chapterComments")
+        // .orderBy("createdAt", "desc")
+        .where("chapterId", "==", req.params.chapterId)
+        .get();
+    })
+    .then((data) => {
+      chapterData.comments = [];
+      data.forEach((doc) => {
+        chapterData.comments.push(doc.data());
+      });
+      return res.json(chapterData);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ error: err.code });
+    });
+};
+// This api is still in progress.
 exports.editChapter = (req, res) => {
   const { valid, errors } = validateFormat(req.body, ["body", "title"]);
   if (!valid) return res.status(400).json(errors);
@@ -126,36 +158,8 @@ exports.editChapter = (req, res) => {
     });
 };
 
-// Fetch one chapter
-exports.getChapter = (req, res) => {
-  let chapterData = {};
-  db.doc(`/chapters/${req.params.chapterId}`)
-    .get()
-    .then((doc) => {
-      if (!doc.exists) {
-        return res.status(404).json({ error: "Chapter not found" });
-      }
-      chapterData = doc.data();
-      chapterData.chapterId = doc.id;
-      return db
-        .collection("chapterComments")
-        .orderBy("createdAt", "desc")
-        .where("chapterId", "==", req.params.chapterId)
-        .get();
-    })
-    .then((data) => {
-      chapterData.comments = [];
-      data.forEach((doc) => {
-        chapterData.comments.push(doc.data());
-      });
-      return res.json(chapterData);
-    })
-    .catch((err) => {
-      console.error(err);
-      res.status(500).json({ error: err.code });
-    });
-};
-// Comment on a chapter
+
+// This api is still in progress. 
 exports.commentOnChapter = (req, res) => {
   if (isEmpty(req.body.body))
     return res.status(400).json({ comment: "Must not be empty" });
@@ -188,7 +192,7 @@ exports.commentOnChapter = (req, res) => {
       res.status(500).json({ error: "Something went wrong" });
     });
 };
-// Like a Chapter
+// This api is still in progress.
 exports.likeChapter = (req, res) => {
   const likeDocument = db
     .collection("chapterLikes")
@@ -235,7 +239,7 @@ exports.likeChapter = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-
+// This api is still in progress.
 exports.unlikeChapter = (req, res) => {
   const likeDocument = db
     .collection("chapterLikes")
@@ -279,7 +283,7 @@ exports.unlikeChapter = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// Delete a scream
+// This api is still in progress.
 exports.deleteChapter = (req, res) => {
   const document = db.doc(`/chapters/${req.params.chapterId}`);
   let handle = "";
