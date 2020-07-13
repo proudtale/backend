@@ -64,7 +64,7 @@ exports.editScream = (req, res) => {
     body: req.body.body,
     userHandle: req.user.handle,
     imageUrl: req.user.imageUrl,
-    editedAt: new Date().toISOString(),
+    editedAt: new Date().toUTCString(),
     edited: true
   };
 

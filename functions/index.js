@@ -43,7 +43,7 @@ const {
 } = require("./handlers/books");
 const {
   getAllChapters,
-  getAllChaptersOfABook,
+  getAllChaptersOfBook,
   postOneChapter,
   editChapter,
   getChapter,
@@ -63,7 +63,7 @@ app.get("/scream/:screamId/like", FBAuth, likeScream);
 app.get("/scream/:screamId/unlike", FBAuth, unlikeScream);
 app.post("/scream/:screamId/comment", FBAuth, commentOnScream);
 
-// users routes
+// Users routes
 app.post("/signup", signup);
 app.post("/login", login);
 app.post("/user/image", FBAuth, uploadImage);
@@ -73,7 +73,7 @@ app.get("/user/:handle", FBAuth, getUserDetails);
 app.get("/user/:handle/books", FBAuth, getUserBookDetails);
 app.post("/notifications", FBAuth, markNotificationsRead);
 
-//book routes
+// Book routes
 app.get("/books", getAllBooks);
 app.post("/book", FBAuth, postOneBook);
 app.post("/book/bookImage/:bookId", FBAuth, editBookImage);
@@ -86,12 +86,12 @@ app.get("/book/:bookId/unfav", FBAuth, unfavBook);
 app.post("/book/:bookId/comment", FBAuth, commentOnBook);
 app.post("/book/:bookId/completeBook", FBAuth, completeBook);
 
-//chapter routes
+// Chapter routes
 app.get("/chapters", getAllChapters);
-app.get("/books/:bookId/chapters", getAllChaptersOfABook);
+app.get("/book/:bookId/chapters", getAllChaptersOfBook);
 app.post("/book/:bookId/chapter", FBAuth, postOneChapter);
 app.delete("/book/:bookId/chapter/:chapterId", FBAuth, deleteChapter);
-app.post("/chapter/:chapterId/edit", FBAuth, editChapter);
+app.post("/book/:bookId/chapter/:chapterId/edit", FBAuth, editChapter);
 app.get("/book/:bookId/chapter/:chapterId", getChapter);
 app.get("/chapter/:chapterId/like", FBAuth, likeChapter);
 app.get("/chapter/:chapterId/unfav", FBAuth, unlikeChapter);

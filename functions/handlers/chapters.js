@@ -26,10 +26,25 @@ exports.getAllChapters = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// This api is still in progress.
-exports.getAllChaptersOfABook = (req, res) => {
-  db.collection("chapters")
-    .where("bookId", "==", req.params.bookId)
+
+// db.doc(`/books/${req.params.bookId}/chapters/${req.params.chapterId}`)
+// .get()
+// .then((doc) => {
+//   if (!doc.exists) {
+//     return res.status(404).json({ error: "Chapters not found" });
+//   }
+//   chapterData = doc.data();
+//   chapterData.chapterId = doc.id;
+//   return db
+//     .collection("books").doc(req.params.bookId).collection("chapterComments")
+//     // .orderBy("createdAt", "desc")
+//     .where("chapterId", "==", req.params.chapterId)
+//     .get();
+
+// Fetch all chapters of the book
+exports.getAllChaptersOfBook = (req, res) => {
+  db.collection("books").doc(req.params.bookId).collection("chapters")
+    // .where("bookId", "==", req.params.bookId)
     .orderBy("createdAt")
     .get()
     .then((data) => {
@@ -123,7 +138,7 @@ exports.getChapter = (req, res) => {
       res.status(500).json({ error: err.code });
     });
 };
-// This api is still in progress.
+// Edit a chapter
 exports.editChapter = (req, res) => {
   const { valid, errors } = validateFormat(req.body, ["body", "title"]);
   if (!valid) return res.status(400).json(errors);
@@ -131,16 +146,15 @@ exports.editChapter = (req, res) => {
   const updateChapter = {
     body: req.body.body,
     title: req.body.title,
-    userHandle: req.user.handle,
-    editedAt: new Date().toISOString(),
+    editedAt: new Date().toUTCString(),
     edited: true,
   };
 
-  db.doc(`/books/${req.params.bookId}`)
+  db.doc(`/books/${req.params.bookId}/chapters/${req.params.chapterId}`)
     .get()
     .then((data) => {
-      if (data.exists && data.data().userHandle === req.params.handle) {
-        db.doc(`/chapters/${req.params.chapterId}`)
+      if (data.exists) {
+        db.doc(`/books/${req.params.bookId}/chapters/${req.params.chapterId}`)
           .update(updateChapter)
           .then(() => {
             return res.json(updateChapter);
@@ -148,9 +162,7 @@ exports.editChapter = (req, res) => {
       } else if (!data.exists) {
         return res
           .status(404)
-          .json({ err: "The book you are writing for cannot be found" });
-      } else {
-        return res.status(403).json({ err: "Unauthorized" });
+          .json({ err: "The chapter you are looking for cannot be found" });
       }
     })
     .catch((err) => {
